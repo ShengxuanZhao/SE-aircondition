@@ -5,6 +5,7 @@ import pymysql
 def connectdatabase():
 	#print("Please input the password of the database:")
 	#psw=input()
+	#print(aaa)
 	db=pymysql.connect("localhost","root","Vi97@xuan&cky","aircondition")
 	dbcur=db.cursor()
 	return (dbcur,db)
@@ -22,35 +23,42 @@ def createtablehotel(db,dbcur):
 	except:
 		db.rollback()
 
-	
-
 def createtableroom(db,dbcur,roomid):
 	#cmd="drop table if exists "+roomid+";"
 	#dbcur.execute(cmd)
-	cmd="create table if not exists "
-	cmd=cmd+roomid
-	cmd=cmd+" (time datetime not null,"
-	cmd=cmd+"switch varchar(1),cur_t decimal(4,2),tar_t decimal(4,2),"
-	cmd=cmd+"w_speed varchar(1),cur_cost decimal(7,2),primary key(time));"
+	cmd="SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_NAME='"+roomid+"'"
 	try:
 		dbcur.execute(cmd)
 		db.commit()
 	except:
 		db.rollback()
-	#print(cmd)
+	a=dbcur.fetchone()
+	#print(a[0])
+	if a[0]==0:
+		cmd="create table if not exists "
+		cmd=cmd+roomid
+		cmd=cmd+" (time datetime not null,"
+		cmd=cmd+"switch varchar(1),cur_t decimal(4,2),tar_t decimal(4,2),"
+		cmd=cmd+"w_speed varchar(1),cur_cost decimal(7,2),primary key(time));"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except:
+			db.rollback()
+			#print(cmd)
 
-	cmd="insert into "+roomid+" values"
-	cmd=cmd+"(now(),0,26,26,0,0);"
-	try:
-		dbcur.execute(cmd)
-		db.commit()
-	except:
-		db.rollback()
+		cmd="insert into "+roomid+" values"
+		cmd=cmd+"(now(),0,26,26,0,0);"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except:
+			db.rollback()	
 	#print(cmd)
 	
 
 def writerecordroom(db,dbcur,roomid,s):
-	s=s.split(" ")
+	s=s.split(" ") 
 	a=s[0]
 	b=s[1:]
 	if a=='0':
@@ -64,7 +72,7 @@ def writerecordroom(db,dbcur,roomid,s):
 		b.insert(1,c)
 		cmd="insert into "+roomid+" values(now()"
 		for i in b:
-			cmd=cmd+","+str(i)
+			cmd=cmd+","+str(i) 
 		cmd=cmd+");"
 
 	else:
@@ -114,4 +122,6 @@ if __name__=='__main__':
 	createtablehotel(db,dbcur)
 	createtableroom(db,dbcur,"abc")
 	writerecordroom(db,dbcur,"abc","0 1 28 1 1")
+
+
 
