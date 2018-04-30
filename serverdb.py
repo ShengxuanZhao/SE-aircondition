@@ -1,5 +1,9 @@
 import os
 import pymysql
+swps=0.01
+mwps=0.02
+wind=0.01
+
 
 #use the database named aircondition
 def connectdatabase():
@@ -24,8 +28,6 @@ def createtablehotel(db,dbcur):
 		db.rollback()
 
 def createtableroom(db,dbcur,roomid):
-	#cmd="drop table if exists "+roomid+";"
-	#dbcur.execute(cmd)
 	cmd="SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_NAME='"+roomid+"'"
 	try:
 		dbcur.execute(cmd)
@@ -34,6 +36,7 @@ def createtableroom(db,dbcur,roomid):
 		db.rollback()
 	a=dbcur.fetchone()
 	#print(a[0])
+	#the room not exists
 	if a[0]==0:
 		cmd="create table if not exists "
 		cmd=cmd+roomid
@@ -53,46 +56,72 @@ def createtableroom(db,dbcur,roomid):
 			dbcur.execute(cmd)
 			db.commit()
 		except:
-			db.rollback()	
-	#print(cmd)
+			db.rollback()
+		cmd="insert into hotel values('"+roomid+"',0,26,0,0);"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except:
+			db.rollback()
+		print(cmd)
 	
 
 def writerecordroom(db,dbcur,roomid,s):
 	s=s.split(" ") 
 	a=s[0]
+	print(a)
 	b=s[1:]
 	if a=='0':
-		cmd="select cur_t from "+roomid+" order by time asce limit 1;"
+		cmd="select cur_t from "+roomid+" order by time asc limit 1;"
 		try:
 			dbcur.execute(cmd)
 			db.commit()
 		except:
 			db.rollback()
 		c=dbcur.fetchone()
-		b.insert(1,c)
+		print(c[0])
+		b.insert(1,c[0])
 		cmd="insert into "+roomid+" values(now()"
 		for i in b:
 			cmd=cmd+","+str(i) 
 		cmd=cmd+");"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except:
+			db.rollback()
+		print(cmd)
 
-	else:
-		cmd="select switch,tar_t,w_speed from "+roomid+" order by time asc limit 1;"
+	#current state
+	if a=='1':
+		cmd="select switch,tar_t,w_speed,cur_cost from "+roomid+" order by time desc limit 1;"
 		dbcur.execute(cmd)
 		try:
 			dbcur.execute(cmd)
 			db.commit()
 		except:
 			db.rollback()
-		c,d,e=dbcur.fetchone()
+		c,d,e,f=dbcur.fetchone()
+		e=int(e)
+		f=float(f)
 		b.insert(0,c) 
 		b.insert(2,d)
 		b.insert(3,e)
-		cmd="insert into hotel values(now()"
+		b.insert(4,f+wind*e)
+		print(c,d,e)
+		#cmda="insert into hotel values(now()"
+		cmd="insert into "+roomid+" values(now()"
 		for i in b:
 			cmd=cmd+","+str(i)
 		cmd=cmd+");"
-	print(cmd)
-	dbcur.execute(cmd)
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except:
+			db.rollback()
+		print(cmd)
+		currentcost(db,dbcur,roomid)
+
 
 
 def writerecordhotel(db,dbcur,roomid):
@@ -112,16 +141,24 @@ def currentt():
 		result
 
 
-#def currentcost():
+def currentcost(db,dbcur,roomid):
+	cmd="select * from "+roomid+";"
+	try:
+		dbcur.execute(cmd)
+		db.commit()
+	except:
+		db.rollback()
+	a=dbcur.fetchone()
+	print(a)
 
 
 
 if __name__=='__main__':
+	#input the price for each kind of wind
 	(dbcur,db)=connectdatabase()
 
 	createtablehotel(db,dbcur)
 	createtableroom(db,dbcur,"abc")
-	writerecordroom(db,dbcur,"abc","0 1 28 1 1")
-
-
-
+	#writerecordroom(db,dbcur,"abc","0 1 28 1 1")
+	writerecordroom(db,dbcur,"abc","1 26.4")
+	
