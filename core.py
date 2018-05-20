@@ -5,19 +5,39 @@ from threading import Thread, Semaphore
 import time
 import types
 import datetime
+import re
 #import psutil
 #need：1.json 2.compare and fetch
 #question 1。统一1秒？
 
+def interactdb():#给萱萱
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # AF_INET（IPV4使用） SOCK_STREAM（TCP模式）
+    client.setblocking(False)
+    #print(client.recv(1024).decode('utf-8'))
+
+    while True:
+        sendbuf = "hey"
+        sendbuf = json.load(sendbuf)  # 输入
+        client.send(sendbuf.encode('utf-8'))  # UTF-8编码
+        if not sendbuf or sendbuf == 'exit':  # 退出条件判断
+            break
+        recvbuf = client.recv(1024)
+        print(recvbuf.decode('utf-8'))  # 解码
+    client.close()  # 断开连接
+    print('Connection was closed...')
+
+
 def tcplink(connect, addr):
     while True:
         print('Accept new connection from %s:%s...' % addr)
-
+        print("aloha")
         #connect.send(json.dump('Welcome!\r\n'))
         jsondata = connect.recv(1024)#receieve
-        print(jsondata)
-        data = json.loads(jsondata)#decode
-        print("this is:"+data)
+        print("hi")
+        data = re.sub("u'", "\"", jsondata)
+        data = json.loads(jsondata.decode('utf-8'))#decode
+        print("this is:")
+        print(data)
         connect.send(json.dump(('Hello,room %s' % data['room'].decode('utf-8')).encode('utf-8')))#feedback
         time.sleep(1)
         #if not data or data.decode('utf-8') == 'exit':
@@ -26,6 +46,7 @@ def tcplink(connect, addr):
 
         if data['type']==1:
             #give vicky
+            interactdb()
             connect.send(json.dump(
                 ('ok' % data['room'].decode('utf-8')).encode(
                     'utf-8')))  # feedback
@@ -54,11 +75,12 @@ def tcplink(connect, addr):
 
 
 ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-ser.bind(('192.168.43.20', 12345))
 
-ser.listen(1)   # 监听连接 如果有超过5个连接请求，从第6个开始不会被accept
+ser.bind(('192.168.137.56', 8080))
 
-sem=Semaphore(3)    #设置计数器的值为3
+ser.listen(5)               # 监听连接 如果有超过5个连接请求，从第6个开始不会被accept
+
+sem=Semaphore(3)#设置计数器的值为3
 print('Server is running...')       # 打印运行提示
 
 
