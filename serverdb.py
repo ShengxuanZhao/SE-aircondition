@@ -1,9 +1,15 @@
 import os
 import pymysql
+import time
+import datetime
+import json
+import types 
+import socket
+from datetime import datetime
+
 swps=0.01
 mwps=0.02
 wind=0.01
-
 
 #use the database named aircondition
 def connectdatabase():
@@ -56,7 +62,7 @@ def createtableroom(db,dbcur,roomid):
 			dbcur.execute(cmd)
 			db.commit()
 		except:
-			db.rollback()
+			db.rollback() 
 		cmd="insert into hotel values('"+roomid+"',0,26,0,0);"
 		try:
 			dbcur.execute(cmd)
@@ -90,7 +96,7 @@ def writerecordroom(db,dbcur,roomid,s):
 			db.commit()
 		except:
 			db.rollback()
-		print(cmd)
+		print(cmd) 
 
 	#current state
 	if a=='1':
@@ -154,11 +160,36 @@ def currentcost(db,dbcur,roomid):
 
 
 if __name__=='__main__':
+	print("Start the server at {}".format(datetime.now()))
+	address = ('localhost', 1138)
+	max_size = 1024
+	
+	#data = client.recv(max_size)
+
 	#input the price for each kind of wind
 	(dbcur,db)=connectdatabase()
-
+	
 	createtablehotel(db,dbcur)
 	createtableroom(db,dbcur,"abc")
+	
+
+	while(1):
+		server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+		server.bind(address)
+		server.listen(5)
+		client,addr = server.accept()
+		res_bytes = client.recv(max_size)
+		print(res_bytes)
+		res_str = str(res_bytes, encoding='utf-8')
+
+		writerecordroom(db,dbcur,"abc",res_str)
+		client.sendall(bytes("got it",encoding='utf-8'))
+		client.close()
+		server.close()
+
+
+	
 	#writerecordroom(db,dbcur,"abc","0 1 28 1 1")
-	writerecordroom(db,dbcur,"abc","1 26.4")
+	#writerecordroom(db,dbcur,"abc","1 26.4")
+
 	
