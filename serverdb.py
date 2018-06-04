@@ -123,7 +123,8 @@ def writerecordroom(db,dbcur,roomid,s):
 		try:
 			dbcur.execute(cmd)
 			db.commit()
-		except:
+
+			except:
 			db.rollback()
 		print(cmd)
 		currentcost(db,dbcur,roomid)
@@ -156,6 +157,36 @@ def currentcost(db,dbcur,roomid):
 		db.rollback()
 	a=dbcur.fetchone()
 	print(a)
+
+#打印某一房间的详单
+def detailedlist(db,dbcur,roomid):
+	cmd="select * from "+roomid+";"
+	try:
+		dbcur.execute(cmd)
+		db.commit()
+	except:
+		db.rollback()
+	dl=dbcur.fetchall()#detailedlist
+	l=[]
+	ll=[]
+	for i in dl:
+		for j in i:
+			ll.append(j)
+		l.append(ll)
+		ll=[]
+
+	print("时间				",end='		')
+	print("开关",end='		')
+	print("实际温度",end='		')
+	print("目标温度",end='		')
+	print("风速",end='		')
+	print("金额",end='		')
+	print("\n")
+
+	for a in l:
+		for b in a:
+			print(b,end='		')
+		print("\n")
 
 
 
