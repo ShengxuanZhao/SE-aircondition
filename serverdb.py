@@ -23,6 +23,18 @@ def connectdatabase():
 	dbcur=db.cursor()
 	return (dbcur,db)
 
+#执行传入数据库的指令cmd
+def excutecmd(db,dbcur,cmd):
+	print(cmd)
+	try:
+		dbcur.execute(cmd)
+		db.commit()
+		print(cmd,"执行成功")
+	except:
+		db.rollback()
+		print(cmd,"执行失败")
+	return
+
 #创建hotel表，记录所有房间当前情况
 def createtablehotel(db,dbcur):
 	cmd="create table if not exists hotel("
@@ -30,11 +42,7 @@ def createtablehotel(db,dbcur):
 	cmd=cmd+"temperature decimal(4,2),wind varchar(1),cost decimal(7,2),"
 	cmd=cmd+"primary key(roomid)"
 	cmd=cmd+");"
-	try:
-		dbcur.execute(cmd)
-		db.commit()
-	except:
-		db.rollback()
+	excutecmd(db,dbcur,cmd)
 
 #为每个新出现的房间建表，表格名称为room+房间号
 def createtableroom(db,dbcur,roomid):
@@ -52,7 +60,8 @@ def createtableroom(db,dbcur,roomid):
 		cmd=cmd+roomid
 		cmd=cmd+" (time datetime not null,"
 		cmd=cmd+"switch varchar(1),cur_t decimal(4,2),tar_t decimal(4,2),"
-		cmd=cmd+"w_speed varchar(1),cur_cost decimal(7,2),primary key(time));"
+		#cmd=cmd+"w_speed varchar(1),cur_cost decimal(7,2),primary key(time));"
+		cmd=cmd+"w_speed varchar(1),cur_cost decimal(7,2));"
 		try:
 			dbcur.execute(cmd)
 			db.commit()
@@ -99,7 +108,7 @@ def writerecordroom(db,dbcur,roomid,s):
 		for i in b:
 			cmd=cmd+","+str(i) 
 		cmd=cmd+");"
-		time.sleep(1)
+		#time.sleep(1)
 		try:
 			dbcur.execute(cmd)
 			db.commit()
@@ -149,7 +158,7 @@ def writerecordroom(db,dbcur,roomid,s):
 			for i in b:
 				cmd=cmd+","+str(i)
 			cmd=cmd+");"
-			time.sleep(1)
+			#time.sleep(1)
 			try:
 				dbcur.execute(cmd)
 				db.commit()
@@ -189,7 +198,7 @@ def writerecordroom(db,dbcur,roomid,s):
 			for i in b:
 				cmd=cmd+","+str(i)
 			cmd=cmd+");"
-			time.sleep(1)
+			#time.sleep(1)
 			try:
 				dbcur.execute(cmd)
 				db.commit()
@@ -205,33 +214,8 @@ def writerecordroom(db,dbcur,roomid,s):
 				msg=str("C "+str(roomid)+" 1 "+str(tt)+" "+str(e)+" "+str(f))
 				print(msg)
 				return msg
-		
-		
-		#currentcost(db,dbcur,roomid)
-		#cmd_to_hotel=str(c)+" "+str(i)+" "+str(e)+" "+str(f)
-		#print(cmd_to_hotel)
-		#writerecordhotel(db,dbcur,roomid,cmd_to_hotel)
 
-
-#将当前房间状态记录在hotel表中
-#def writerecordhotel(db,dbcur,roomid,s):
-#	s=s.split(" ")
-#	switch=s[0]
-#	t=s[1]
-#	w=s[2]
-#	c=s[3]
-#	cmd="update hotel set switch="+c
-#	cmd=cmd+",temperature="+t
-#	cmd=cmd+",wind="+w
-#	cmd=cmd+",cost="+c
-#	cmd=cmd+" where roomid="+roomid+";"
-#	try:
-#		dbcur.execute(cmd)
-#		db.commit()
-#	except:
-#		db.rollback()
-
-#比较房间内当前温度和目标温度，是否达到，并把房间当前信息同步到hotel表中
+#比较房间内当前温度和目标温度，是否达到
 def cmpcurrentt(db,dbcur,roomid):
 	cmd="select cur_t,tar_t from "+roomid+" order by time desc limit 1;"
 	try:
@@ -252,33 +236,97 @@ def cmpcurrentt(db,dbcur,roomid):
 		return(0,ct,tt)
 		#client.sendall(bytes("A "+roomid,encoding='utf-8'))
 
-#未完成
+#周期性将所有房间最新信息更新到总表格中
 def update(db,dbcur):
-
-	cmd="select switch,cur_t,tar_t,w_speed,cur_cost from "+roomid+" order by time desc limit 1;"
+	cmd="select roomid from hotel;"
 	try:
 		dbcur.execute(cmd)
 		db.commit()
 	except: 
 		db.rollback()
-	s,ct,tt,ws,cc=dbcur.fetchone()
-	s=int(s)
-	ct=float(ct)
-	tt=float(tt)
-	ws=int(ws)
-	cc=float(cc)
+	roomlist=dbcur.fetchall()
+	print(roomlist)
+	l=[]
+	for i in roomlist:
+		for j in i:
+			l.append(str(j))
+	print(l)
+	for roomid in l:
+		cmd="select switch,cur_t,tar_t,w_speed,cur_cost from "+roomid+" order by time desc limit 1;"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except: 
+			db.rollback()
+		s,ct,tt,ws,cc=dbcur.fetchone()
+		s=int(s)
+		ct=float(ct)
+		tt=float(tt)
+		ws=int(ws)
+		cc=float(cc)
 
-	cmd="update hotel set switch="+str(s)
-	cmd=cmd+",temperature="+str(ct)
-	cmd=cmd+",wind="+str(ws)
-	cmd=cmd+",cost="+str(cc)
-	cmd=cmd+" where roomid="+roomid+";"
-	print(cmd)
-
+		cmd="update hotel set switch="+str(s)
+		cmd=cmd+",temperature="+str(ct)
+		cmd=cmd+",wind="+str(ws)
+		cmd=cmd+",cost="+str(cc)
+		cmd=cmd+" where roomid="+roomid+";"
+		#print(cmd)
+	return
 
 #计算当前处于服务队列的房间单位时间内的cost
 #当前未用到
 def currentcost(db,dbcur):
+	cmd="select roomid from hotel where switch=1;"
+	try:
+		dbcur.execute(cmd)
+		db.commit()
+	except: 
+		db.rollback()
+	roomlist=dbcur.fetchall()
+	print("当前开启空调的房间号：")
+	print(roomlist)
+	l=[]
+	for i in roomlist:
+		for j in i:
+			l.append(str(j))
+	print(l)
+	for roomid in l:
+		cmd="select time from "+roomid+" order by time desc limit 1;"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except: 
+			db.rollback()
+
+		cmd="select switch,cur_t,tar_t,w_speed,cur_cost from "+roomid+" order by time desc limit 1;"
+		try:
+			dbcur.execute(cmd)
+			db.commit()
+		except: 
+			db.rollback()
+		s,ct,tt,ws,cc=dbcur.fetchone()
+		s=int(s)
+		ct=float(ct)
+		tt=float(tt)
+		ws=int(ws)
+		cc=float(cc)
+
+
+		cmd="insert into "+roomid+" values(now(),"
+		cmd=cmd+str(s)+","+str(ct)+","+str(tt)+","+str(ws)+","+str(cc)+");"
+
+		cmd="update hotel set switch="+str(s)
+		cmd=cmd+",temperature="+str(ct)
+		cmd=cmd+",wind="+str(ws)
+		cmd=cmd+",cost="+str(cc)
+		cmd=cmd+" where roomid="+roomid+";"
+		print(cmd)
+	return
+
+
+
+
+
 	cmd="select roomid from hotel where wind=1;"
 	try:
 		dbcur.execute(cmd)
@@ -317,7 +365,6 @@ def getroomid(s):
 	print("msg:"+temps)
 	return (str(roomid),temps)
 
-
 #打印某一房间的详单
 def detailedlist(db,dbcur,roomid):
 	cmd="select * from "+roomid+";"
@@ -351,7 +398,7 @@ def detailedlist(db,dbcur,roomid):
 
 if __name__=='__main__':
 	print("Start the server at {}".format(datetime.now()))
-	address = ('localhost',9016)
+	address = ('localhost',9017)
 	max_size = 1024
 
 	#input the price for each kind of wind
@@ -364,9 +411,9 @@ if __name__=='__main__':
 	server.listen(1)
 
 	while(1):
-		
 		client,addr = server.accept()
 		while(1):
+			update(db,dbcur)
 			res_bytes = client.recv(max_size)
 			#print("aaaa")
 			if not res_bytes:
